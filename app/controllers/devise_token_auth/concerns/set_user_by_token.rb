@@ -9,6 +9,29 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
   protected
 
+  def set_auth_params!
+    # parse header for values necessary for authentication
+    @uid        = request.headers['uid'] || params['uid']
+    @token     = request.headers['access-token'] || params['access-token']
+    @client_id = request.headers['client'] || params['client']
+
+    # client_id isn't required, set to 'default' if absent
+    @client_id ||= 'default'
+    set_auth_hash!
+  end
+
+  def set_auth_hash!
+    @auth_hash = Hash.new
+    @auth_hash = {uid: @uid} if @uid
+    @rc ||= resource_class
+
+    @rc.request_keys.each do |k|
+      _m = k.to_s.downcase.to_sym
+      next unless request.respond_to?(_m)
+      @auth_hash[k.downcase.to_sym] = request.send(_m)
+    end
+  end
+
   # keep track of request duration
   def set_request_start
     @request_started_at = Time.now
@@ -18,10 +41,11 @@ module DeviseTokenAuth::Concerns::SetUserByToken
   # user auth
   def set_user_by_token(mapping=nil)
     # determine target authentication class
-    rc = resource_class(mapping)
+    @rc = resource_class(mapping)
 
     # no default user defined
-    return unless rc
+    return unless @rc
+    set_auth_params!
 
     #gets the headers names, which was set in the initialize file
     uid_name = DeviseTokenAuth.headers_names[:'uid']
@@ -35,10 +59,11 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # client_id isn't required, set to 'default' if absent
     @client_id ||= 'default'
+    headers_names
 
     # check for an existing user, authenticated via warden/devise, if enabled
     if DeviseTokenAuth.enable_standard_devise_support
-      devise_warden_user = warden.user(rc.to_s.underscore.to_sym)
+      devise_warden_user =  warden.user(@rc.to_s.underscore.to_sym)
       if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
         @used_auth_by_token = false
         @resource = devise_warden_user
@@ -47,7 +72,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     end
 
     # user has already been found and authenticated
-    return @resource if @resource and @resource.class == rc
+    return @resource if @resource and @resource.class == @rc
 
     # ensure we clear the client_id
     if !@token
@@ -58,7 +83,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     return false unless @token
 
     # mitigate timing attacks by finding by uid instead of auth token
-    user = uid && rc.find_by_uid(uid)
+    user = @uid && @rc.find_for_authentication(@auth_hash)
 
     if user && user.valid_token?(@token, @client_id)
       # sign_in with bypass: true will be deprecated in the next version of Devise
@@ -145,6 +170,6 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     not params[:unbatch] and
     user.tokens[client_id] and
     user.tokens[client_id]['updated_at'] and
-    Time.parse(user.tokens[client_id]['updated_at']) > @request_started_at - DeviseTokenAuth.batch_request_buffer_throttle
+    Time.parse(user.tokens[client_id]['updated_at'].to_s) > @request_started_at - DeviseTokenAuth.batch_request_buffer_throttle
   end
 end
