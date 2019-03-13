@@ -46,6 +46,8 @@ module DeviseTokenAuth
         yield @resource if block_given?
 
         render_create_success
+      elsif @resource&.try(:access_locked?)
+        render_create_error_access_locked
       elsif @resource && !(!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
         render_create_error_not_confirmed
       else
@@ -111,6 +113,16 @@ module DeviseTokenAuth
       render json: {
         data: resource_data(resource_json: @resource.token_validation_response)
       }
+    end
+
+    def render_create_error_access_locked
+      render json: {
+        success: false,
+        code: 'ACCESS_LOCKED',
+        errors: [
+          I18n.t("devise_token_auth.sessions.access_locked")
+        ]
+      }, status: 401
     end
 
     def render_create_error_not_confirmed
