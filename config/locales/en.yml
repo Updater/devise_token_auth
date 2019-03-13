@@ -5,6 +5,7 @@ en:
       bad_credentials: "Invalid login credentials. Please try again."
       not_supported: "Use POST /sign_in to sign in. GET is not supported."
       user_not_found: "User was not found or was not logged in."
+      access_locked: 'Access locked due to too many invalid login attempts.'
     token_validations:
       invalid: "Invalid login credentials"
     registrations:
