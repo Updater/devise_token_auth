@@ -110,46 +110,45 @@ module DeviseTokenAuth
     end
 
     def render_create_success
-      render json: {
+      @response_json = {
         data: resource_data(resource_json: @resource.token_validation_response)
-      } and return
+      }
+      @response_status = 200
     end
 
     def render_create_error_access_locked
-      render json: {
+      @response_json = {
         success: false,
         code: 'ACCESS_LOCKED',
         errors: [
           I18n.t("devise_token_auth.sessions.access_locked")
         ]
-      }, status: 401 and return
+      }
+      @response_status = 401
     end
 
     def render_create_error_not_confirmed
-      render json: {
+      @response_json = {
         success: false,
         errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", email: @resource.email) ]
-      }, status: 401 and return
+      }
+      @response_status = 401
     end
 
     def render_create_error_bad_credentials
-      render json: {
+      @response_json = {
         errors: [I18n.t("devise_token_auth.sessions.bad_credentials")]
-      }, status: 401 and return
+      }
+      @response_status = 401
     end
 
     def render_destroy_success
-      render json: {
-        success:true
-      }, status: 200 and return
+      render json: { success: true }, status: 200
     end
 
     def render_destroy_error
-      render json: {
-        errors: [I18n.t("devise_token_auth.sessions.user_not_found")]
-      }, status: 404 and return
+      render json: { errors: [I18n.t("devise_token_auth.sessions.user_not_found")] }, status: 404
     end
-
 
     private
 
