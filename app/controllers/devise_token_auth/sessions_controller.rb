@@ -5,6 +5,8 @@ module DeviseTokenAuth
     before_action :set_auth_hash!, :except => [:destroy] # mutually exclusive since set_user_by_token calls this.
     after_action :reset_session, :only => [:destroy]
 
+    attr_accessor :response_json, :response_status
+
     def new
       render_new_error
     end
@@ -40,7 +42,6 @@ module DeviseTokenAuth
           expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
         @resource.save
-
         sign_in(:user, @resource, store: false, bypass: false)
 
         yield @resource if block_given?
