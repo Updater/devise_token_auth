@@ -24,7 +24,7 @@ module DeviseTokenAuth::Concerns::User
     end
 
     unless tokens_has_json_column_type?
-      serialize :tokens, JSON
+      serialize :tokens, coder: JSON
     end
 
     if DeviseTokenAuth.default_callbacks

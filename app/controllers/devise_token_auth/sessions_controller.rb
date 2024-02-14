@@ -5,6 +5,8 @@ module DeviseTokenAuth
     before_action :set_auth_hash!, :except => [:destroy] # mutually exclusive since set_user_by_token calls this.
     after_action :reset_session, :only => [:destroy]
 
+    attr_accessor :response_json, :response_status
+
     def new
       render_new_error
     end
@@ -40,7 +42,6 @@ module DeviseTokenAuth
           expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
         @resource.save
-
         sign_in(:user, @resource, store: false, bypass: false)
 
         yield @resource if block_given?
@@ -106,50 +107,49 @@ module DeviseTokenAuth
     def render_new_error
       render json: {
         errors: [ I18n.t("devise_token_auth.sessions.not_supported")]
-      }, status: 405
+      }, status: 405 and return
     end
 
     def render_create_success
-      render json: {
+      @response_json = {
         data: resource_data(resource_json: @resource.token_validation_response)
       }
+      @response_status = 200
     end
 
     def render_create_error_access_locked
-      render json: {
+      @response_json = {
         success: false,
         code: 'ACCESS_LOCKED',
         errors: [
           I18n.t("devise_token_auth.sessions.access_locked")
         ]
-      }, status: 401
+      }
+      @response_status = 401
     end
 
     def render_create_error_not_confirmed
-      render json: {
+      @response_json = {
         success: false,
         errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", email: @resource.email) ]
-      }, status: 401
+      }
+      @response_status = 401
     end
 
     def render_create_error_bad_credentials
-      render json: {
+      @response_json = {
         errors: [I18n.t("devise_token_auth.sessions.bad_credentials")]
-      }, status: 401
+      }
+      @response_status = 401
     end
 
     def render_destroy_success
-      render json: {
-        success:true
-      }, status: 200
+      render json: { success: true }, status: 200
     end
 
     def render_destroy_error
-      render json: {
-        errors: [I18n.t("devise_token_auth.sessions.user_not_found")]
-      }, status: 404
+      render json: { errors: [I18n.t("devise_token_auth.sessions.user_not_found")] }, status: 404
     end
-
 
     private
 
