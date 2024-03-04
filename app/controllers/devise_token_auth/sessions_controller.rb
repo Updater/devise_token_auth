@@ -5,7 +5,7 @@ module DeviseTokenAuth
     before_action :set_auth_hash!, :except => [:destroy] # mutually exclusive since set_user_by_token calls this.
     after_action :reset_session, :only => [:destroy]
 
-    attr_accessor :response_json, :response_status
+    attr_accessor :response_json, :response_status, :custom_serializer
 
     def new
       render_new_error
@@ -114,6 +114,7 @@ module DeviseTokenAuth
       @response_json = {
         data: resource_data(resource_json: @resource.token_validation_response)
       }
+      @custom_serializer = ::Tokens::SessionSerializer
       @response_status = 200
     end
 
